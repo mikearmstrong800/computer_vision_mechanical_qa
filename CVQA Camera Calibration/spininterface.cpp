@@ -7,6 +7,14 @@
 
 
 #include "spininterface.h"
+#include <QDebug>
+
+
+using namespace Spinnaker;
+using namespace Spinnaker::GenApi;
+using namespace Spinnaker::GenICam;
+using namespace std;
+
 
 /*!
  * The SpinInterface class interfaces with a Point Grey (Flir) Camera.
@@ -15,14 +23,6 @@ SpinInterface::SpinInterface()
 {
     calIsLoaded = false;
     cameraIsInitialized = false;
-/*
-    cap.open(0); //comment this out for production
-    if(cap.isOpened())
-    {
-      calIsLoaded = true;
-      cameraIsInitialized = true;
-    }
-*/
 }
 
 //----------------------------------------------------------------------------------------------
@@ -34,68 +34,29 @@ SpinInterface::~SpinInterface()
   pCam = nullptr;
   camList.Clear();
   systemSpin->ReleaseInstance();
-
-  cap.release();    //comment this out for production
-
 }
-
 
 
 /*!Acquire image from file imageFile
  *
 */
-SpinInterface::t_acquireImageReturnStruct* SpinInterface::acquireImage(std::string imageFile)
+cv::Mat* SpinInterface::acquireImage(std::string imageFile)
 {
-    static t_acquireImageReturnStruct AIRS;
+    static cv::Mat imageGrabbed;
     //cv::Mat imgTmp;
     //cv::Size size(1288,964);
-    AIRS.imageRaw = cv::imread(imageFile, cv::IMREAD_GRAYSCALE);
-    if(AIRS.imageRaw.empty())
+    imageGrabbed = cv::imread(imageFile, cv::IMREAD_GRAYSCALE);
+    if(imageGrabbed.empty())
     {
-        AIRS.error = -99;
-        return &AIRS;
+        imageGrabbed.release();
+        return &imageGrabbed;
     }
     //cv::resize(imageGrabbed, imgTmp, size);
     //imgTmp.copyTo(imageGrabbed);
     //cv::imshow("test", imageGrabbed);     //diagnostic
     //cv::waitKey(0);                       //diagnostic
-    return &AIRS;
+    return &imageGrabbed;
 }
-
-
-
-
-
-/*!--------------------------------------------------------------------------------------------------------
- *
- *  For development with webcam - use the FLIR version below for production
- *
- *
- *
- --------------------------------------------------------------------------------------------------------*/
-/*
-SpinInterface::t_acquireImageReturnStruct*  SpinInterface::acquireImage()
-{
-  static cv::Mat imageGrabbed, imageGray, imageResized;
-  static t_acquireImageReturnStruct AIRS;
-
-  cap.read(imageGrabbed);
-  if(!imageGrabbed.empty())
-  {
-    cvtColor(imageGrabbed,imageGray,cv::COLOR_RGB2GRAY);
-    imageGray.copyTo(imageResized);
-    resize(imageResized, imageResized, cv::Size(2448,2048));
-    AIRS.imageRaw = imageResized;
-  }
-
-  return &AIRS;
-
-}
-*/
-
-
-
-
 
 /*!Acquires one image from the camera
  *
@@ -108,6 +69,7 @@ SpinInterface::t_acquireImageReturnStruct*  SpinInterface::acquireImage()
 {
   static cv::Mat imageGrabbed;
   static t_acquireImageReturnStruct AIRS;
+  Spinnaker::ImageProcessor processor;
 
   if(!cameraIsInitialized)
   {
@@ -131,7 +93,7 @@ SpinInterface::t_acquireImageReturnStruct*  SpinInterface::acquireImage()
   }
   else
   {
-    Spinnaker::ImagePtr convertedImage = pResultImage->Convert(Spinnaker::PixelFormat_Mono8, Spinnaker::HQ_LINEAR);
+      Spinnaker::ImagePtr convertedImage = processor.Convert(pResultImage, PixelFormat_Mono8);  //processor.Convert(Spinnaker::PixelFormat_Mono8);
 
     size_t XPadding = convertedImage->GetXPadding();
     size_t YPadding = convertedImage->GetYPadding();
@@ -149,11 +111,6 @@ SpinInterface::t_acquireImageReturnStruct*  SpinInterface::acquireImage()
     AIRS.imageRaw = imageGrabbed;
     return &AIRS;
 }
-
-
-
-
-
 
 /*!Finds and initializes the first Point Grey camera attached to the system
  *
@@ -190,21 +147,24 @@ int SpinInterface::initPGRCamera()
       Spinnaker::GenICam::gcstring deviceVendorName = pCam->TLDevice.DeviceVendorName.GetValue();
       Spinnaker::GenICam::gcstring deviceModelName = pCam->TLDevice.DeviceModelName.GetValue();
 
-      Spinnaker::GenICam::gcstring camID = pCam->GetUniqueID();
+      Spinnaker::GenICam::gcstring camID = pCam->GetDeviceID();
       //TODO make the cal file name the same as the serial number returned by GetUniqueID and check that they match
 
       pCam->AcquisitionMode.SetValue(Spinnaker::AcquisitionModeEnums::AcquisitionMode_SingleFrame);
 
       double fr = pCam->AcquisitionFrameRate.GetValue();
+      qDebug() << "Frame Rate: "<< fr;
 
       pCam->DeviceLinkThroughputLimit.SetValue(75360000);   //equates to 15 frames/sec on Chameleon3
       //pCam->DeviceLinkThroughputLimit.SetValue(25120000);   //equates to 5 frames/sec on Chameleon3
 
       fr = pCam->AcquisitionFrameRate.GetValue();
+      qDebug() << "Frame Rate: "<< fr;
 
       //pCam->AcquisitionFrameRate.SetValue(15.0f);
 
-      //auto exposure and auto gain on
+      pCam->ExposureAuto.SetValue(Spinnaker::ExposureAutoEnums::ExposureAuto_Continuous);
+
       pCam->ExposureAuto.SetValue(Spinnaker::ExposureAutoEnums::ExposureAuto_Continuous);
       pCam->GainAuto.SetValue(Spinnaker::GainAutoEnums::GainAuto_Continuous);
     }

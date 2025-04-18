@@ -15,8 +15,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 #Spinnaker
-include_directories("C:/Program Files/FLIR Systems/Spinnaker/include")
-link_directories( "C:/Program Files/FLIR Systems/Spinnaker/lib64/vs2015" )
+include_directories("C:/Program Files/Teledyne/Spinnaker/include")
+link_directories( "C:/Program Files/Teledyne/Spinnaker/lib64/vs2015" )
 set(SPINNAKER_LIB Spinnaker_v140 )
 
 #OpenCV
