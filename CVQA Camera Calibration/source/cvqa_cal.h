@@ -82,8 +82,8 @@ public:
     unsigned int imageCount = 0;
     unsigned int currentVerifyImage = 0;
     bool verificationInProgress = false;
-    QString calImageDir = "..//calibration_images//";
-    QString configDir = "..//config//cvqa_config.xml";
+    QString calImageDir = "..//..//calibration_images//";
+    QString configDir = "..//..//config//cvqa_config.xml";
 
 
     /*
