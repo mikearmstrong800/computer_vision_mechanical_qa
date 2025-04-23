@@ -1,6 +1,8 @@
 #include "cvqa_cal.h"
 #include "ui_cvqa_cal.h"
 
+#include <opencv2/objdetect/charuco_detector.hpp>
+
 CVQA_Cal::CVQA_Cal(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::CVQA_Cal)
@@ -242,41 +244,47 @@ int CVQA_Cal::acquireCharucoBoardImages()
 Mat CVQA_Cal::processCharucoBoardImage(Mat distortedCharucoBoardImage)
 {
   Mat displayImage, newCameraMatrix;
+  aruco::CharucoParameters charucoParams;
+  aruco::CharucoBoard charucoBoard(Size(14, 9), 20.0f, 15.0f, dictionary);
+  aruco::CharucoDetector detector(charucoBoard, charucoParams, detectorParams);
+  vector<int> markerIds;
+  vector<vector<Point2f>> markerCorners;
+
+  charucoParams.tryRefineMarkers = true;
 
   if(!distortedCharucoBoardImage.empty())
   {
       distortedCharucoBoardImage.copyTo(displayImage);
       cvtColor(displayImage,displayImage,cv::COLOR_GRAY2RGB);
 
-      vector< int > ids;
-      vector< vector< Point2f > > corners, rejected;
+      Mat currentCharucoCorners, currentCharucoIds;
 
+      imageSize = distortedCharucoBoardImage.size();
 
-      detectorParams->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
-      aruco::detectMarkers(distortedCharucoBoardImage, makePtr<aruco::Dictionary>(dictionary), corners, ids, detectorParams, rejected);
-      aruco::refineDetectedMarkers(distortedCharucoBoardImage, charucoBoard, corners, ids, rejected);
+      detectorParams.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
 
+      detector.detectBoard(distortedCharucoBoardImage, currentCharucoCorners, currentCharucoIds);
 
-
-      Mat interpolatedCharucoCorners, interpolatedCharucoIds;
-
-      if(ids.size() > 0)
+      if(currentCharucoCorners.total() > 3)
       {
-        aruco::interpolateCornersCharuco(corners, ids, distortedCharucoBoardImage, charucoBoard, interpolatedCharucoCorners, interpolatedCharucoIds);
-        aruco::drawDetectedMarkers(displayImage, corners);
+          aruco::drawDetectedCornersCharuco(displayImage, currentCharucoCorners, currentCharucoIds);
+      }
 
-        if(interpolatedCharucoCorners.total() > 0)
-          aruco::drawDetectedCornersCharuco(displayImage, interpolatedCharucoCorners, interpolatedCharucoIds);
+      vector<Point3f> currentObjectPoints;
+      vector<Point2f> currentImagePoints;
 
-        allCharucoCorners.push_back(interpolatedCharucoCorners);
-        allCharucoIds.push_back(interpolatedCharucoIds);
+        charucoBoard.matchImagePoints(currentCharucoCorners, currentCharucoIds, currentObjectPoints, currentImagePoints);
+        allCharucoCorners.push_back(currentCharucoCorners);
+        allCharucoIds.push_back(currentCharucoIds);
+        allImagePoints.push_back(currentImagePoints);
+        allObjectPoints.push_back(currentObjectPoints);
 
         if(!calImagesWereLoadedFromFile)
           allImages.push_back(distortedCharucoBoardImage);
 
         imageCount++;
 
-      }
+
 
 
         QFont serifFont("Times", 12, QFont::Normal);
@@ -327,6 +335,7 @@ void CVQA_Cal::on_pushButton_calibrate_clicked()
  -------------------------------------------------------------------------------------------*/
 bool CVQA_Cal::calibrate()
 {
+    aruco::CharucoBoard charucoBoard(Size(14, 9), 20.0f, 15.0f, dictionary);
 
     if(allCharucoCorners.size()<1 || allCharucoIds.size()<1) return false;
     liveVideoFlag = false;
@@ -342,12 +351,8 @@ bool CVQA_Cal::calibrate()
     cameraMatrix.at<double>(0, 2) = intrinsicPrincipalPointX;
     cameraMatrix.at<double>(1, 2) = intrinsicPrincipalPointY;
 
-
-    double rms = aruco::calibrateCameraCharuco(allCharucoCorners, allCharucoIds, charucoBoard, Size(2448,2048),
-                                               cameraMatrix, distortionCoefficients, rvecs, tvecs ,
-                                               stdDeviationsIntrinsics, stdDeviationsExtrinsics, perViewErrors,
-                                               baseFlags + extraFlags,
-                                               TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, DBL_EPSILON));
+    double rms = calibrateCamera(allObjectPoints, allImagePoints, imageSize, cameraMatrix, distortionCoefficients,
+                                 noArray(), noArray(), noArray(), noArray(), perViewErrors, baseFlags + extraFlags);
 
 
     //CALIB_FIX_ASPECT_RATIO + CALIB_FIX_PRINCIPAL_POINT + CALIB_ZERO_TANGENT_DIST + CALIB_USE_INTRINSIC_GUESS +CALIB_FIX_FOCAL_LENGTH

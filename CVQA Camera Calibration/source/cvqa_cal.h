@@ -64,6 +64,7 @@ public:
     double RMSError;
     int baseFlags = CALIB_FIX_ASPECT_RATIO + CALIB_FIX_PRINCIPAL_POINT + CALIB_ZERO_TANGENT_DIST;
     int extraFlags = 0;
+    Size imageSize;
 
     double intrinsicX = 2.65e3;
     double intrinsicY = 2.65e3;
@@ -81,8 +82,8 @@ public:
     unsigned int imageCount = 0;
     unsigned int currentVerifyImage = 0;
     bool verificationInProgress = false;
-    QString calImageDir = "..//..//calibration_images//";
-    QString configDir = "..//..//config//cvqa_config.xml";
+    QString calImageDir = "..//calibration_images//";
+    QString configDir = "..//config//cvqa_config.xml";
 
 
     /*
@@ -94,6 +95,10 @@ public:
     vector<Mat> allCharucoCorners;
     vector<Mat> allCharucoIds;
     vector<Mat> allImages;
+
+    vector<vector<Point2f>> allImagePoints;
+    vector<vector<Point3f>> allObjectPoints;
+
 
     vector<double> stdDeviationsIntrinsics;
     vector<double> stdDeviationsExtrinsics;
@@ -107,14 +112,13 @@ public:
 
 
 
-    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
-    cv::Ptr<cv::aruco::CharucoBoard> charucoBoard = cv::aruco::CharucoBoard::create(14, 9, 20.0f, 15.0f, dictionary);
+    //cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
+    aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
 
-    cv::Ptr<cv::aruco::DetectorParameters> detectorParams = cv::aruco::DetectorParameters::create();
-
+    //cv::Ptr<cv::aruco::DetectorParameters> detectorParams = cv::aruco::DetectorParameters::create();
+    cv::aruco::DetectorParameters detectorParams;
 
     std::vector<cv::Mat> rvecs, tvecs;
-
 
     Scene* scene = new(Scene);
 
