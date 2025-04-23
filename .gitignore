@@ -1,1 +1,3 @@
 CVQA Camera Calibration/build
+CVQA Camera Calibration/calibration_images/*
+CVQA Camera Calibration/source/CMakeLists.txt.user

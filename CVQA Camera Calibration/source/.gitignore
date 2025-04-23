@@ -1,5 +1,0 @@
-build/debug/*
-build/release/*
-calibration_images/*
-CMakeLists.txt.user
-
