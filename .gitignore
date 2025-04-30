@@ -1,7 +1,7 @@
 CVQA Camera Calibration/build
 CVQA Camera Calibration/calibration_images/*
 CVQA Camera Calibration/source/CMakeLists.txt.user
-CVQA Camera Calibration/Deployed
+CVQA Camera Calibration/CVQA_Camera_Calibration_Deployed
 CVQA System/build
 CVQA System/source/CMakeLists.txt.user
-CVQA System/Deployed
+CVQA System/CVQA_Deployed
