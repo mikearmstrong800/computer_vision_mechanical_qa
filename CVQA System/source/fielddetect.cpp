@@ -34,7 +34,11 @@
 
 #include "fielddetect.h"
 
-#include <opencv2/aruco.hpp>
+#include <opencv2/objdetect/aruco_detector.hpp>
+#include <opencv2/objdetect/aruco_board.hpp>
+#include <opencv2/objdetect/aruco_dictionary.hpp>
+#include <opencv2/geometry.hpp>
+
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/videostab/deblurring.hpp>
